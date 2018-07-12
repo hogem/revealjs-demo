@@ -15,6 +15,11 @@ $ reveal-ck start
 
 open http://localhost:10000/ or slides/index.html
 
+# スライド一覧
+
+- [demo](https://hogem.github.io/slides/demo/slides/index.html)
+
+
 
 # 備考
 slides/ 以下のファイルはreveal-ckが作成してくれるため、
