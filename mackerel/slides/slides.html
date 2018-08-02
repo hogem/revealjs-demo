@@ -1,0 +1,686 @@
+<section>
+
+<h3>フルマネージドホスティングの</h3>
+<h3>運用監視に Mackerel を導入した話</h3>
+<hr>
+<p>Kenichi Morimoto<br>
+2018 / 08 / 02<br>
+Mackerel Meetup #12</p>
+
+</section>
+<section>
+
+<h3>もくじ</h3>
+<ul>
+  <li>自己紹介</li>
+  <li>既存の監視・運用の問題点</li>
+  <li>Mackerel 導入理由</li>
+  <li>Mackerel 導入後</li>
+  <li>監視利用例</li>
+</ul>
+
+</section>
+<section>
+
+<h3>自己紹介</h3>
+<ul>
+  <li>名前: 森本 健一</li>
+  <li>2006~
+    <ul>
+      <li>インフラエンジニア</li>
+    </ul>
+  </li>
+  <li>GCP Cloud Architect</li>
+  <li>AWS Solutions Architect Associate</li>
+</ul>
+
+</section>
+<section>
+
+<h3>法人向けフルマネージド ホスティング</h3>
+
+<ul>
+  <li>自社基盤メイン
+    <ul>
+      <li>既存 ISP の回線設備を有効活用</li>
+      <li>クラウド基盤 VMware / 約700VM</li>
+      <li>物理 専用サーバ、共用サーバ / 約500台</li>
+      <li>NW 機器 / 約300台</li>
+    </ul>
+  </li>
+  <li>パブリッククラウド
+    <ul>
+      <li>AWS、GCP、(Azure)</li>
+    </ul>
+  </li>
+</ul>
+
+</section>
+<section>
+
+<h3>抱えていた問題</h3>
+<ul>
+  <li>ユーザへの障害通知のタイムラグ</li>
+  <li>混在している監視システム</li>
+  <li>たびたび起こる監視設定の間違い</li>
+  <li>監視サーバの設計上の問題</li>
+</ul>
+
+</section>
+<section>
+
+<h3>ユーザへの障害通知のタイムラグ</h3>
+<ul>
+  <li>手動で連絡
+    <ul>
+      <li>営業へのメール</li>
+      <li>障害Webページへの掲載</li>
+    </ul>
+  </li>
+  <li>どうしても連絡が遅くなる
+    <ul>
+      <li>同時に複数の障害が発生した場合</li>
+    </ul>
+  </li>
+  <li>社内の複数部署と連携しているシステム</li>
+</ul>
+
+</section>
+<section>
+
+<h3>混在している監視システム</h3>
+<ul>
+  <li>Zabbix</li>
+  <li>Pandora FMS</li>
+  <li>Cacti (２つ)</li>
+  <li>GrowthForecast</li>
+</ul>
+
+<p>各担当者が個別に用意して運用が煩雑に</p>
+
+</section>
+<section>
+
+<h3>Cacti</h3>
+
+<ul>
+  <li>L2/L3 SW の interface 全部 グラフにするとかは楽</li>
+  <li>snmp、mib の知識が必要 (やや特殊)</li>
+  <li>cacti plugin 作成の学習コスト</li>
+  <li>お手軽にグラフ描きたい！</li>
+</ul>
+
+</section>
+<section>
+
+<h3>GrowthForecast</h3>
+<ul>
+  <li>cactiより簡単にグラフ化したいので採用！</li>
+  <li>API経由でグラフ作成</li>
+  <li>単体ではアラート通知機能がない</li>
+  <li>通知の必要がない統計グラフに利用している</li>
+</ul>
+
+</section>
+<section>
+
+<h3>Pandora FMS</h3>
+
+<ul>
+  <li>オープンソースの監視ソフトウェア</li>
+  <li>クラウド基盤構築時に導入</li>
+  <li>子会社 (システム運用、監視、障害対応) にコミッタがいたので採用</li>
+</ul>
+
+</section>
+<section>
+
+<h3>Pandora FMS 問題点</h3>
+<ul>
+  <li>リソース結構使う</li>
+  <li>普段は問題ない
+    <ul>
+      <li>大規模障害時にアラート来なかった</li>
+    </ul>
+  </li>
+  <li>監視サーバのスペック
+    <ul>
+      <li>CPU: Intel Xeon E5-2407 2.20GHz 4コア</li>
+      <li>Memory: 40GB</li>
+    </ul>
+  </li>
+</ul>
+
+</section>
+<section>
+
+<h3>Pandora FMS 監視数</h3>
+
+<ul>
+  <li>監視ホスト数: 約600</li>
+  <li>監視項目数: 約3500</li>
+</ul>
+
+</section>
+<section>
+
+<h3>リソース状況</h3>
+
+<p><img src="images/pandora2.png" alt="pandora2"></p>
+
+<pre><code>$ sar 
+00:00:00  CPU     %user     %nice   %system   %iowait    %steal     %idle
+Average:  all     39.53      0.00     25.00      3.27      0.00     32.19
+</code></pre>
+
+</section>
+<section>
+
+<h3>監視サーバの設計の問題</h3>
+<ul>
+  <li>当初予算の制約</li>
+  <li>同一H/Wで監視とログサーバを兼ねていた</li>
+  <li>Pandora FMS が想定よりリソース食う</li>
+  <li>クラウド基盤と<span style="color: red">同一NW内</span>に監視サーバを配置</li>
+</ul>
+
+</section>
+<section>
+
+<h3>ある日 大規模な NW 障害が発生</h3>
+<ul>
+  <li>NW 環境が不安定に
+    <ul>
+      <li>一部のホストとストレージが切断</li>
+      <li>約１時間、影響 数百VM</li>
+    </ul>
+  </li>
+  <li>Pandora 上はステータスが<span style="color: red">“不明”</span>となりアラート通知が飛ばなかった</li>
+  <li>後日調査: Pandora のリソース不足が原因だった可能性が高い</li>
+</ul>
+
+</section>
+<section>
+
+<h3>たびたび起きる監視設定ミス</h3>
+<p>サーバ構築者が監視担当者に依頼</p>
+<ul>
+  <li>監視設定間違い (ex: ホスト、ポート)</li>
+  <li>アラート送信設定間違い (ex: 送信未設定、宛先)</li>
+  <li>サーバ構築者が監視依頼を忘れていた 😇</li>
+</ul>
+
+<p>根本的な原因: <span style="color: red;">レビューがない </span></p>
+
+</section>
+<section>
+
+<h3>当時抱えていた問題 (おさらい)</h3>
+<ul>
+  <li>障害通知のタイムラグ</li>
+  <li>混在している監視システム</li>
+  <li>たびたび起こる監視設定の間違い</li>
+  <li>監視サーバの設計上の問題</li>
+</ul>
+
+</section>
+<section>
+
+<h3>Mackerel 導入理由</h3>
+<ul>
+  <li>個々の課題の解決方法は色々あった</li>
+  <li>Mackerel を使えば総合的に解決できそう</li>
+  <li>SaaS / マネージドサービス</li>
+  <li>コスト比較
+    <ul>
+      <li>クラウドに Zabbix インスタンス 冗長構成</li>
+      <li>VPN、監視運用、管理</li>
+    </ul>
+  </li>
+</ul>
+
+</section>
+<section>
+
+<h3>監視サーバの保守が不要</h3>
+
+<p>オンプレ or クラウド上で監視サーバ構築の場合</p>
+<ul>
+  <li>クラスタ構成(PaceMaker等)、複数台構成
+    <ul>
+      <li>Pandora FMS, Zabbix, Zabbix Proxy</li>
+    </ul>
+  </li>
+  <li>台数、容量増加時にスケールできる設計が必要</li>
+</ul>
+
+</section>
+<section>
+
+<h3>プライベート NW 環境に導入しやすい</h3>
+<ul>
+  <li>セキュリティ要件の厳しい顧客のプライベートネットワーク環境</li>
+  <li>api.mackerelio.com 443 port への outbound の許可があればOK
+    <ul>
+      <li>HTTP Proxy or NAT</li>
+      <li>監視のために 443 通します、という説明は必要</li>
+    </ul>
+  </li>
+  <li>監視サーバからのルーティング、FW許可などが不要</li>
+</ul>
+
+</section>
+<section>
+
+<h3>工夫したこと</h3>
+
+<ul>
+  <li>障害情報ページへのリアルタイムの反映</li>
+  <li>オーガニゼーションをまたがった検索</li>
+  <li>顧客への通知メールのカスタマイズ</li>
+</ul>
+
+</section>
+<section>
+
+<h3>マネージドホスティング</h3>
+
+<ul>
+  <li>原則 1顧客 1オーガニゼーション
+    <ul>
+      <li>約 70 オーガニゼーション</li>
+    </ul>
+  </li>
+  <li>Mackerel 管理画面上でオーガニゼーションを超えてホスト、アラートが検索できない</li>
+</ul>
+
+<p><img src="images/mackerel2.png" alt="mackerel"></p>
+
+</section>
+<section>
+
+<h3>構成図</h3>
+<p><img src="images/statuspage.png" alt="statuspage"></p>
+
+</section>
+<section>
+
+<h3>自前ダッシュボードの作成</h3>
+
+<ul>
+  <li>GCP 上に GCE インスタンスを構築
+    <ul>
+      <li>本当は App Engineを使ってみたかった 😇</li>
+      <li>本番利用の実績がなく、実装までの時間の都合上断念</li>
+    </ul>
+  </li>
+  <li>Python + Flask + FlaskAdmin で作成
+    <ul>
+      <li>API Key の管理</li>
+      <li>登録ホスト、アラート等を JSON で取得</li>
+      <li>オーガニゼーションごとのホスト数</li>
+    </ul>
+  </li>
+</ul>
+
+</section>
+<section>
+
+<h3>Flask Admin + SQLAlchemy</h3>
+
+<pre><code class="language-python">class Organizations(db.Model):
+    id       = db.Column(db.Integer, primary_key=True)
+    name     = db.Column(db.String(50), nullable=False, index=True)
+    apikey   = db.Column(db.String(50), nullable=False, unique=True)
+    verified = db.Column(db.Boolean)
+    private  = db.Column(db.Boolean)
+    memo     = db.Column(db.String(200))
+
+admin.add_view(ModelView(Organizations, db.session))
+</code></pre>
+
+</section>
+<section>
+
+<h3>簡単に管理画面実装できる</h3>
+<!-- ![mackerel](images/mackerel3.png) -->
+<p><img src="images/mackerel3.png" style="width:100%;"></p>
+
+</section>
+<section>
+
+<h3>JSON を元に出力した html</h3>
+
+<p><img src="images/mackerel_summary.png" alt="summary"></p>
+
+</section>
+<section>
+
+<h3>JSON を元に出力した html (hosts)</h3>
+<!-- ![statuspage](images/mackerel_hosts.png) -->
+<p><img src="images/mackerel_hosts.png" style="width:100%;"></p>
+
+</section>
+<section>
+
+<h3>通知メールのカスタマイズ</h3>
+<ul>
+  <li>Mackerel からの通知メール
+    <ul>
+      <li>From: noreply@mackerel.io</li>
+    </ul>
+  </li>
+  <li>営業の要望
+    <ul>
+      <li>From の変更</li>
+      <li>メール本文のカスタマイズ</li>
+      <li>簡単な内容で送って欲しい</li>
+      <li>service ごとに異なる宛先に送りたい</li>
+    </ul>
+  </li>
+</ul>
+
+</section>
+<section>
+
+<h3>Webhook request body 抜粋</h3>
+
+<p><img src="images/webhook_json.png" alt="webhook_json"></p>
+
+</section>
+<section>
+
+<h3>GCP 上に API 用意</h3>
+
+<ul>
+  <li>Flask で Webhook 受け取る</li>
+  <li>JSON から orgName, hostname 等を取得</li>
+  <li><span style="color: red">1ホスト 1サービス で運用 </span></li>
+  <li>ユーザへのメール送信には SendGrid を利用</li>
+</ul>
+
+<pre><code>    user = db.session.query(Notifications).filter(
+               Notifications.orgname == orgname, 
+               Notifications.service == service).first()
+</code></pre>
+
+</section>
+<section>
+
+<h3>死活監視の通知メール</h3>
+
+<p><img src="images/mackerel_connectivity.png" alt="mackerel_connectivity"></p>
+
+</section>
+<section>
+
+<h3>書き換えたメール</h3>
+
+<ul>
+  <li>Mackerel のアラートID をケースID として通知</li>
+  <li>問い合わせの際にMackerel 上で追える</li>
+</ul>
+
+<pre><code>
+マネージドクラウド 障害を検知いたしました。
+
+発生日時　　　： 2018-07-26 11:57:04
+障害対象サーバ： vmXXXX
+ケースID　　　： 3k73ZJscVcW
+
+詳細については下記Webサイトをご確認ください。
+
+</code></pre>
+
+</section>
+<section>
+
+<h3>補足: GCPのメール送信制限</h3>
+
+<ul>
+  <li>ポート 25 を宛先とする送信トラフィック（SMTP）はすべてブロックされます</li>
+  <li>ポート 465 または 587 を宛先とするほとんどのトラフィック（SMTP over SSL）がブロックされます</li>
+  <li><a href="https://cloud.google.com/compute/docs/networks-and-firewalls">https://cloud.google.com/compute/docs/networks-and-firewalls</a></li>
+</ul>
+
+</section>
+<section>
+
+<h2>監視設定手順の簡略化</h2>
+
+</section>
+<section>
+
+<h3>Mackerel 導入後の構成</h3>
+
+<ul>
+  <li>エージェントインストールで死活監視は自動的に開始</li>
+  <li>これだけで監視漏れがなくなる安心感が得られる</li>
+</ul>
+
+</section>
+<section>
+
+<h3>アラートごとの宛先がわかりやすい</h3>
+
+<p><img src="images/mackerel_monitor.png" alt="mackerel_monitor"></p>
+
+</section>
+<section>
+
+<h3>Mackerel 導入前 URL 監視設定フロー</h3>
+
+<ul>
+  <li>サーバ構築者が監視内容を<span style="color: red">excel</span>に記入</li>
+  <li>サーバ構築者がチケットにexcelを添付</li>
+  <li>監視担当者がチケット内容を元に監視設定</li>
+</ul>
+
+<p>辛い 😇</p>
+
+</section>
+<section>
+
+<h3>Mackerel 導入後 (予定)</h3>
+
+<ul>
+  <li>担当者が監視内容を設定
+    <ul>
+      <li>mkr monitors pull して編集</li>
+      <li>branch 切って commit, push (社内 Gitlab )</li>
+      <li>Merge Request 投げる</li>
+    </ul>
+  </li>
+  <li>チェック者が Merge
+    <ul>
+      <li>Gitlab CI で自動的に設定
+        <ul>
+          <li>mkr monitors push</li>
+        </ul>
+      </li>
+    </ul>
+  </li>
+</ul>
+
+</section>
+<section>
+
+<h3>cron を Mackerel に巻き取る</h3>
+
+<ul>
+  <li>定期的なチェック処理等
+    <ul>
+      <li>クリティカルなモノは結果を監視してる</li>
+      <li>全部してない</li>
+    </ul>
+  </li>
+  <li>スクリプト個別に実装すると面倒
+    <ul>
+      <li>失敗時の連続通知抑制</li>
+    </ul>
+  </li>
+  <li>終了ステータスだけ調整すれば check plugin で出来る</li>
+</ul>
+
+</section>
+<section>
+
+<h2>監視利用例</h2>
+
+</section>
+<section>
+
+<h3>CDN</h3>
+<ul>
+  <li>CDN: J-Stream とパートナー契約
+    <ul>
+      <li>(利用状況次第で) AWSより転送単価安い</li>
+      <li>CloudWatch のような通知機能がない</li>
+      <li>APIで転送量取得は可能</li>
+    </ul>
+  </li>
+  <li>転送量コミット xx TB / 月額 oo 万円</li>
+  <li>容量超過時 xx 円 / GB</li>
+</ul>
+
+</section>
+<section>
+
+<h3>CDNの転送量監視</h3>
+<ul>
+  <li>Mackerel でメトリック監視で解決
+    <ul>
+      <li>サービスメトリックに投稿</li>
+      <li>容量超過が発生したらアラート通知</li>
+      <li>グラフ共有で関係者に転送量状況を共有</li>
+    </ul>
+  </li>
+</ul>
+
+</section>
+<section>
+
+<h3>7月の某ユーザのtraffic graph</h3>
+
+<p><img src="images/cdn1.png" alt="cdn1"></p>
+
+</section>
+<section>
+
+<h3>公共機関 Web サイト - 大雨の日</h3>
+
+<p><img src="images/cdn1-2.png" alt="cdn1-2"></p>
+
+</section>
+<section>
+
+<h3>契約容量を100 % としたグラフ</h3>
+<ul>
+  <li>このメトリックに監視を設定</li>
+</ul>
+
+<p><img src="images/cdn2.png" alt="cdn2"></p>
+
+</section>
+<section>
+
+<h3>グラフ式 - 全ユーザの CDN 合計容量</h3>
+
+<p><img src="images/cdn3.png" alt="cdn3"></p>
+
+</section>
+<section>
+
+<h3>Mackerel 登録ホスト数の監視</h3>
+<ul>
+  <li>default では mackerel-agent.conf は一般ユーザで読み取り可能
+    <ul>
+      <li>API Key がわかる</li>
+      <li>chmod 600 mackerel-agent.conf し忘れたり</li>
+    </ul>
+  </li>
+  <li>他部署に root 権限を渡している
+    <ul>
+      <li>万が一、誤った操作されたら。。。</li>
+    </ul>
+  </li>
+  <li>自前ダッシュボードのAPIが正常動作しているかの確認も兼ねてる</li>
+</ul>
+
+</section>
+<section>
+
+<h3>登録ホスト数</h3>
+
+<p><img src="images/mackerel1.png" alt="mackerel"></p>
+
+</section>
+<section>
+
+<h3>登録ホスト数を監視</h3>
+
+<p><img src="images/mackerel_monitor2.png" alt="mackerel"></p>
+
+</section>
+<section>
+
+<h2>要望</h2>
+
+</section>
+<section>
+
+<h3>通知メールのテンプレート</h3>
+
+<ul>
+  <li>From、To</li>
+  <li>Subject</li>
+  <li>Body</li>
+</ul>
+
+</section>
+<section>
+
+<h3>ホストのメモ情報</h3>
+
+<ul>
+  <li>マニュアルへの link とか書きたい</li>
+  <li>メールには含まれていない
+    <ul>
+      <li>Webhookで飛んでくる JSON には含まれている</li>
+    </ul>
+  </li>
+</ul>
+
+</section>
+<section>
+
+<h3>外形監視</h3>
+
+<ul>
+  <li>Mackerel で外部からの監視
+    <ul>
+      <li>URL 外形監視はある</li>
+      <li>特定ホストの障害として紐づけたい</li>
+      <li>icmp, port 監視</li>
+    </ul>
+  </li>
+  <li>Mackerel 本体で全部やってくれたら嬉しい</li>
+  <li>もしくは OSS を使う
+    <ul>
+      <li><a href="https://github.com/fujiwara/maprobe">https://github.com/fujiwara/maprobe</a></li>
+    </ul>
+  </li>
+</ul>
+
+</section>
+<section>
+
+<h3>まとめ</h3>
+
+<ul>
+  <li>エージェントインストールだけで監視が始まる安心感</li>
+  <li>API が豊富に提供されていて大抵のことはできる</li>
+  <li>運用監視を Mackerel に任せることでサービス提供に集中できる</li>
+</ul>
+
+</section>
