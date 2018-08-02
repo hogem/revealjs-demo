@@ -18,6 +18,7 @@ Mackerel Meetup #12
 
 ### 自己紹介
 - 名前: 森本 健一
+- @hogem
 - 2006~ 
    - インフラエンジニア
 - GCP Cloud Architect
